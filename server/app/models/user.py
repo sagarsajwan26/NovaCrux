@@ -10,8 +10,10 @@ from app.models.base import Base
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    password_has: Mapped[str] = mapped_column(Text, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(255), nullable=False, unique=True, index=True
+    )
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     first_name: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
