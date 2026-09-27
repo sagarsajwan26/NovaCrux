@@ -1,10 +1,24 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, String, Text, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    String,
+    Text,
+    func,
+    Enum as SQLEnum,
+)
 from sqlalchemy.orm import Mapped, mapped_column
-
+from enum import Enum
 
 from app.models.base import Base
+
+
+class PlatformRole(str, Enum):
+    NONE = "none"
+    ADMIN = "admin"
+    SUPERADMIN = "superadmin"
 
 
 class User(Base):
@@ -18,7 +32,16 @@ class User(Base):
         String(100),
         nullable=True,
     )
-
+    platform_role: Mapped[PlatformRole] = mapped_column(
+        SQLEnum(
+            PlatformRole,
+            name="platform_role",
+        ),
+        nullable=False,
+        default=PlatformRole.NONE,
+        server_default="none",
+        index=True,
+    )
     last_name: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
