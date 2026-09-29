@@ -6,6 +6,9 @@ from app.core.exceptions.auth import (
     InvalidTokenError,
     UserAlreadyExistsError,
     UserNotFoundError,
+    SessionNotFoundError,
+    SessionRevokedError,
+    SessionExpiredError,
 )
 
 from app.core.exceptions.tenant import (
@@ -27,4 +30,7 @@ __all__ = [
     "TenantNotFoundError",
     "UserAlreadyExistsError",
     "UserNotFoundError",
+    "SessionNotFoundError",
+    "SessionRevokedError",
+    "SessionExpiredError",
 ]

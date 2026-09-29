@@ -44,3 +44,30 @@ class InvalidTokenError(AppException):
             status_code=401,
             code="invalid_token",
         )
+
+
+class SessionNotFoundError(AppException):
+    def __init__(self):
+        super().__init__(
+            message="Session not found for the given token.",
+            status_code=401,
+            code="session_not_found",
+        )
+
+
+class SessionRevokedError(AppException):
+    def __init__(self):
+        super().__init__(
+            message="This session has been revoked.",
+            status_code=401,
+            code="session_revoked",
+        )
+
+
+class SessionExpiredError(AppException):
+    def __init__(self):
+        super().__init__(
+            message="This session has expired.",
+            status_code=401,
+            code="session_expired",
+        )
