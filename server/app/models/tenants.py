@@ -10,7 +10,7 @@ from sqlalchemy import (
     Enum as SQLEnum,
 )
 from app.models.base import Base
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class TenantStatus(str, Enum):
@@ -71,4 +71,12 @@ class Tenant(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+    domains: Mapped[list["TenantDomain"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+    )
+
+    website: Mapped["Website | None"] = relationship(
+        back_populates="tenant", uselist=False, cascade="all, delete-orphan"
     )

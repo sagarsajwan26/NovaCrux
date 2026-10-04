@@ -9,8 +9,7 @@ class MembershipRepository:
         self.db = db
 
     async def create(self, membership: Membership) -> Membership:
-        self.db.flush()
-
+        self.db.add(membership)
         await self.db.flush()
 
         await self.db.refresh(membership)

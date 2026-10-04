@@ -24,7 +24,7 @@ class RolePermissionRepository:
             .limit(1)
         )
 
-        return result.scalar_one_or_none()
+        return result.scalar_one_or_none() is not None
 
     async def get_permission_ids_for_role(
         self,

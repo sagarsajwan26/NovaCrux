@@ -14,6 +14,7 @@ class TenantRepository:
 
     async def get_by_id(self, tenant_id: int) -> Tenant | None:
         result = await self.db.execute(select(Tenant).where(Tenant.id == tenant_id))
+        return result.scalar_one_or_none()
 
     async def get_by_slug(self, slug: str) -> Tenant | None:
         result = await self.db.execute(select(Tenant).where(Tenant.slug == slug))

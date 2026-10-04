@@ -3,14 +3,11 @@ from app.core.exceptions import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies.auth import get_current_user
 from app.db.session import get_db
-from app.schemas.auth import AuthResponse, RegisterRequest, UserResponse
-
+from app.schemas.auth import AuthResponse, RegisterRequest, UserResponse, LoginRequest
+from app.core.security.security import hash_password, verify_password
 from app.service.auth import AuthService
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["Authentication"],
-)
+router = APIRouter()
 
 
 @router.post("/register", response_model=AuthResponse)
@@ -21,16 +18,13 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ):
     auth_service = AuthService(db)
-    result = (
-        await auth_service.register(
-            email=payload.email,
-            password=payload.email,
-            password=payload.password,
-            first_name=payload.first_name,
-            last_name=payload.last_name,
-            tenant_name=payload.tenant_name,
-            ip_address=request.client.host if request.client else None,
-        ),
+    result = await auth_service.register(
+        email=payload.email,
+        password=payload.password,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        tenant_name=payload.tenant_name,
+        ip_address=request.client.host if request.client else None,
     )
     user_agent = request.headers.get("user-agent")
 
@@ -96,9 +90,47 @@ async def logout(
         key="access_token",
     )
 
-    response.delete_cookie(key="access_token")
-
     response.delete_cookie(
         key="refresh_token",
     )
     return {"message": "Logged out successfully."}
+
+
+@router.post("/login", response_model=AuthResponse)
+async def login(
+    payload: LoginRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)
+):
+    auth_service = AuthService(db)
+    result = await auth_service.login(
+        email=payload.email,
+        password=payload.password,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    response.set_cookie(
+        key="access_token",
+        value=result["access_token"],
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=15 * 60,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=result["refresh_token"],
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=30 * 24 * 60 * 60,
+    )
+
+    return AuthResponse(
+        message="login successful.", user=UserResponse.model_validate(result["user"])
+    )
+
+
+@router.get("/me", response_model=UserResponse)
+async def me(
+    current_user=Depends(get_current_user),
+):
+    return UserResponse.model_validate(current_user)

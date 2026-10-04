@@ -1,2 +1,1 @@
-from .base import Base
-from .auth import LoginResponse, LoginRequest
+from .auth import AuthResponse, LoginRequest, UserResponse

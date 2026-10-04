@@ -17,7 +17,7 @@ from app.models.base import Base
 
 class PlatformRole(str, Enum):
     NONE = "none"
-    ADMIN = "admin"
+    PLATFORM_ADMIN = "platform_admin"
     SUPERADMIN = "superadmin"
 
 
@@ -50,6 +50,8 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
+        default=True,
+        server_default="true",
     )
     email_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
