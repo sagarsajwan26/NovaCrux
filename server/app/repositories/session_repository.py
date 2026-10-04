@@ -39,9 +39,11 @@ class SessionRepository:
         self, token_hash: str, now: datetime
     ) -> Session | None:
         result = await self.db.execute(
-            Session.session_token_hash == token_hash,
-            Session.revoked_at.is_(None),
-            Session.expires_at > now,
+            select(Session).where(
+                Session.session_token_hash == token_hash,
+                Session.revoked_at.is_(None),
+                Session.expires_at > now,
+            )
         )
         return result.scalar_one_or_none()
 
@@ -63,7 +65,7 @@ class SessionRepository:
         sessions = result.scalars().all()
 
         for session in sessions:
-            session.revoked_at == revoked_at
+            session.revoked_at = revoked_at
 
         await self.db.flush()
         return len(sessions)

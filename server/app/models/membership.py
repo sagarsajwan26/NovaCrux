@@ -8,7 +8,7 @@ from app.models.base import Base
 class Membership(Base):
     __tablename__ = "memberships"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "user_id", name="uq_memebership_tenant_user"),
+        UniqueConstraint("tenant_id", "user_id", name="uq_membership_tenant_user"),
     )
     id: Mapped[int] = mapped_column(
         BigInteger,
@@ -23,6 +23,12 @@ class Membership(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("roles.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )

@@ -37,17 +37,53 @@ services:
 
   adminer:
     image: adminer
-    restart: always
+    container_name: novacrux-adminer
+    restart: unless-stopped
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - novacrux-network
+
+  localstack:
+    image: localstack/localstack:3.8.1
+    container_name: novacrux-localstack
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      DEBUG: "1"
+      SERVICES: "s3"
+
+      DOCKER_HOST: "unix:///var/run/docker.sock"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - novacrux-network
+
+  ollama:
+    image: ollama/ollama
+    container_name: rag_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - D:/Ollama/Models:/root/.ollama
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: novacrux-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
 
 volumes:
   pgdata:
   redisdata:
+  localstack_data:
+  qdrant:
 
 networks:
   novacrux-network:

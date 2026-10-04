@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from fastapi import Cookie, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,9 +50,12 @@ async def get_current_user(
         raise InvalidTokenError()
 
     if session.user_id != user.id:
-        raise InactiveUserError()
+        raise InvalidTokenError()
 
     if session.revoked_at is not None:
+        raise InvalidTokenError()
+        
+    if session.expires_at <= datetime.now(timezone.utc):
         raise InvalidTokenError()
 
     return user

@@ -10,6 +10,7 @@ from app.core.exceptions import (
     SessionExpiredError,
     UserNotFoundError,
     InactiveUserError,
+    InvalidCredentialsError,
 )
 from app.core.security.security import hash_password
 from app.core.security.tokens import (
@@ -24,12 +25,14 @@ from app.models.user import User
 from app.models.user_consent import UserConsent
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.user_consent import UserConsentRepository
+from app.service.onboarding import OnboardingService
 from app.service.tenant import TenantService
 from app.repositories.user_repository import UserRepository
 from app.repositories.session_repository import SessionRepository
 from app.repositories.tenant_repository import TenantRepository
 from app.repositories.membership_repository import MembershipRepository
 from app.repositories.role_repository import RoleRepository
+from app.core.security.security import hash_password, verify_password
 
 
 class AuthService:
@@ -73,25 +76,12 @@ class AuthService:
 
             user = await self.user_repository.create(user)
 
-            tenant = await self.tenant_service.create_tenant(
-                name=tenant_name, slug=slug
-            )
-
-            admin_role = await self.role_repository.get_by_name(
-                tenant_id=tenant.id, name="Admin"
-            )
-
-            if admin_role is None:
-                raise RuntimeError("Default Admin role was not created.")
-
-            membership = Membership(
-                tenant_id=tenant.id,
+            onboarding_service = OnboardingService(self.db)
+            tenant = await onboarding_service.provision_tenant(
                 user_id=user.id,
-                role_id=admin_role.id,
-                is_active=True,
+                tenant_name=tenant_name,
+                slug=slug,
             )
-
-            await self.membership_repository.create(membership)
 
             consent = UserConsent(
                 user_id=user.id,
@@ -197,3 +187,55 @@ class AuthService:
         await self.session_repository.revoke(
             session=session, revoked_at=datetime.now(timezone.utc)
         )
+
+    async def login(
+        self,
+        email: set,
+        password: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ):
+        async with self.db.begin():
+            user = await self.user_repository.get_by_email(email.lower())
+
+            if user is None:
+                raise UserNotFoundError()
+
+            if not user.is_active:
+                raise InactiveUserError()
+
+            if not verify_password(password, user.password_hash):
+                raise InvalidCredentialsError()
+
+            refresh_token = generate_refresh_token()
+            refresh_token_hash = hash_refresh_token(refresh_token)
+
+            session = Session(
+                user_id=user.id,
+                session_token_hash=refresh_token_hash,
+                expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+            session = await self.session_repository.create(session)
+            access_token = create_access_token(
+                user_id=user.id,
+                session_id=session.id,
+            )
+
+            user.last_login_at = datetime.now(timezone.utc)
+            audit_log = AuditLog(
+                user_id=user.id,
+                action="user.logged_in",
+                resource_type="user",
+                resource_id=str(user.id),
+                description="user logged in successfully",
+                ip_address=ip_address,
+            )
+            await self.audit_log_repository.create(audit_log)
+
+            return {
+                "user": user,
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+            }
