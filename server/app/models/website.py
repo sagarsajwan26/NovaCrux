@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, func
 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 
@@ -36,4 +36,10 @@ class Website(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+    tenant: Mapped["Tenant"] = relationship(back_populates="website")
+
+    pages: Mapped[list["WebsitePage"]] = relationship(
+        back_populates="website", cascade="all, delete-orphan"
     )
